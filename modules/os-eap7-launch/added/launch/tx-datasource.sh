@@ -73,6 +73,7 @@ function generate_tx_datasource() {
                           <user-name>${3}</user-name>
                           <password>${4}</password>
                       </security>
+                  $(generate_datasource_properties '_CONNECTION_PROPERTY' 'connection-property')
                   </datasource>"
   echo $ds | sed ':a;N;$!ba;s|\n|\\n|g'
 }

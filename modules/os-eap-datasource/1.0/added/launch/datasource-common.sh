@@ -221,12 +221,28 @@ function refresh_interval() {
     echo ""
 }
 
+function generate_datasource_properties() {
+  variable="${1}"
+  xmltag="${2}"
+  ds=""
+    local props=$(compgen -v | grep -s "${prefix}_${variable}_")
+    for prop in $(echo $props); do
+      prop_name=$(echo "${prop}" | sed -e "s/${prefix}_${variable}_//g")
+      prop_val=$(find_env $prop)
+      if [ ! -z ${prop_val} ]; then
+        ds="$ds <${xmltag} name=\"${prop_name}\">${prop_val}</${xmltag}>"
+      fi
+    done
+  echo $ds
+}
+
 function generate_external_datasource() {
   local failed="false"
 
   if [ -n "$NON_XA_DATASOURCE" ] && [ "$NON_XA_DATASOURCE" = "true" ]; then
     ds="<datasource jta=\"${jta}\" jndi-name=\"${jndi_name}\" pool-name=\"${pool_name}\" enabled=\"true\" use-java-context=\"true\" statistics-enabled=\"\${wildfly.datasources.statistics-enabled:\${wildfly.statistics-enabled:false}}\">
           <connection-url>${url}</connection-url>
+          $(generate_datasource_properties '_CONNECTION_PROPERTY' 'connection-property')
           <driver>$driver</driver>"
   else
     ds=" <xa-datasource jndi-name=\"${jndi_name}\" pool-name=\"${pool_name}\" enabled=\"true\" use-java-context=\"true\" statistics-enabled=\"\${wildfly.datasources.statistics-enabled:\${wildfly.statistics-enabled:false}}\">"
@@ -235,16 +251,8 @@ function generate_external_datasource() {
       log_warning "At least one ${prefix}_XA_CONNECTION_PROPERTY_property for datasource ${service_name} is required. Datasource will not be configured."
       failed="true"
     else
-
-      for xa_prop in $(echo $xa_props); do
-        prop_name=$(echo "${xa_prop}" | sed -e "s/${prefix}_XA_CONNECTION_PROPERTY_//g")
-        prop_val=$(find_env $xa_prop)
-        if [ ! -z ${prop_val} ]; then
-          ds="$ds <xa-datasource-property name=\"${prop_name}\">${prop_val}</xa-datasource-property>"
-        fi
-      done
-
       ds="$ds
+             $(generate_datasource_properties 'XA_CONNECTION_PROPERTY' 'xa-datasource-property')
              <driver>${driver}</driver>"
     fi
 
